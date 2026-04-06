@@ -1,0 +1,19 @@
+[build]
+  command = "npm run build"
+  publish = ".next"
+
+[build.environment]
+  # Tell Next.js which env vars to embed at build time.
+  # Set these in the Netlify UI under Site → Environment Variables.
+  NEXT_PUBLIC_API_URL          = ""
+  NEXT_PUBLIC_SUPABASE_URL     = ""
+  NEXT_PUBLIC_SUPABASE_ANON_KEY = ""
+
+# The @netlify/plugin-nextjs plugin handles SSR, API routes, and
+# image optimisation automatically. It replaces the static redirect
+# that was here before (which broke Next.js routing entirely).
+[[plugins]]
+  package = "@netlify/plugin-nextjs"
+
+# Netlify requires a fallback for client-side navigation on static exports.
+# With the plugin installed this is handled automatically — no manual redirect needed.
