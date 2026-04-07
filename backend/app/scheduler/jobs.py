@@ -8,15 +8,27 @@ from apscheduler.schedulers.background import BackgroundScheduler
 from apscheduler.jobstores.memory import MemoryJobStore
 from apscheduler.triggers.interval import IntervalTrigger
 from app.config import settings
+from app.services.supabase_client import SupabaseNotConfiguredError
 
 logger = logging.getLogger("devpulse.scheduler")
 
 
 def _insert_raw_updates(updates):
-    """Insert raw updates into Supabase, skipping duplicates via content_hash."""
+    """Insert raw updates into Supabase, skipping duplicates via content_hash.
+    
+    Returns 0 silently when Supabase is not configured (no .env credentials).
+    """
+    if not updates:
+        return 0
+
     from app.services.supabase_client import get_supabase
 
-    sb = get_supabase()
+    try:
+        sb = get_supabase()
+    except SupabaseNotConfiguredError as e:
+        logger.warning(f"Skipping Supabase insert — {e}")
+        return 0
+
     inserted = 0
 
     for update in updates:
@@ -78,7 +90,11 @@ def process_raw_updates():
         from app.services.supabase_client import get_supabase
         from app.ai.processor import process_raw_update
 
-        sb = get_supabase()
+        try:
+            sb = get_supabase()
+        except SupabaseNotConfiguredError as e:
+            logger.warning(f"Skipping process job — {e}")
+            return
         result = (
             sb.table("raw_updates")
             .select("*")

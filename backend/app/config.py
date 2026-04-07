@@ -1,6 +1,7 @@
 """
 DevPulse Backend — Configuration
 """
+from typing import Any
 from pydantic import field_validator
 from pydantic_settings import BaseSettings, SettingsConfigDict
 
@@ -10,6 +11,7 @@ class Settings(BaseSettings):
         env_file=".env",
         env_file_encoding="utf-8",
         extra="ignore",
+        env_ignore_empty=True,
     )
 
     # Supabase
@@ -29,18 +31,20 @@ class Settings(BaseSettings):
     # Scheduler
     SCRAPE_INTERVAL_HOURS: int = 2
 
-    # App — comma-separated origins can be set via env var CORS_ORIGINS
-    CORS_ORIGINS: list[str] = ["http://localhost:3000", "https://*.netlify.app"]
+    # CORS — stored as a raw string, parsed to list by the validator below.
+    # Using str avoids pydantic-settings' JSON-decode attempt for list[str] fields.
+    CORS_ORIGINS: Any = "http://localhost:3000,https://*.netlify.app"
     DEBUG: bool = False
 
     @field_validator("CORS_ORIGINS", mode="before")
     @classmethod
-    def parse_cors_origins(cls, v):
-        """Allow CORS_ORIGINS to be a comma-separated string in the env file."""
+    def parse_cors_origins(cls, v: Any) -> list[str]:
+        """Parse CORS_ORIGINS from a comma-separated string or a list."""
+        if isinstance(v, list):
+            return [str(o).strip() for o in v if str(o).strip()]
         if isinstance(v, str):
             return [origin.strip() for origin in v.split(",") if origin.strip()]
-        return v
+        return ["http://localhost:3000"]
 
 
 settings = Settings()
-
